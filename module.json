@@ -16,7 +16,7 @@
 			"path": "lang/en.json"
 		}
 	],
-	"manifest": "https://raw.githubusercontent.com/maclavell/toggle-snap-to-grid/master/module.json",
+	"manifest": "https://raw.githubusercontent.com/MAClavell/Toggle-Snap-to-Grid/main/module.json",
 	"url": "https://github.com/MAClavell/Toggle-Snap-to-Grid/",
 	"download": "https://github.com/MAClavell/Toggle-Snap-to-Grid/releases/download/2.0/Toggle-Snap-To-Grid-v2.0.zip"
 }
