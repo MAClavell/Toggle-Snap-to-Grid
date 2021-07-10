@@ -1,7 +1,7 @@
 {
 	"name": "toggle-snap-to-grid",
 	"title": "Toggle Snap to Grid",
-	"description": "Adds an option to hard disable Token Vision Animation when moving a token. Also adds an option to disable it for clients only when the GM drags a token.",
+	"description": "Adds a button to the Token UI that toggles grid snapping for that token. Helpful for RP maps!",
 	"author": "MAClavell",
 	"version": "2.0.0",
 	"minimumCoreVersion": "0.8.8",
