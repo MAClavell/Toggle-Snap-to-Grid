@@ -3,9 +3,9 @@
 	"title": "Toggle Snap to Grid",
 	"description": "Adds an option to hard disable Token Vision Animation when moving a token. Also adds an option to disable it for clients only when the GM drags a token.",
 	"author": "MAClavell",
-	"version": "1.0.0",
-	"minimumCoreVersion": "0.7.9",
-	"compatibleCoreVersion": "0.7.9",
+	"version": "2.0.0",
+	"minimumCoreVersion": "0.8.8",
+	"compatibleCoreVersion": "0.8.8",
 	"esmodules": [
 		"toggle-snap-to-grid.js"
 	],
@@ -18,5 +18,5 @@
 	],
 	"manifest": "https://raw.githubusercontent.com/maclavell/toggle-snap-to-grid/master/module.json",
 	"url": "https://github.com/MAClavell/Toggle-Snap-to-Grid/",
-	"download": "https://github.com/MAClavell/Toggle-Snap-to-Grid/releases/download/1.0/Toggle-Snap-To-Grid-v1.0.zip"
+	"download": "https://github.com/MAClavell/Toggle-Snap-to-Grid/releases/download/2.0/Toggle-Snap-To-Grid-v2.0.zip"
 }
