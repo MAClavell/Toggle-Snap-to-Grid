@@ -9,6 +9,7 @@ const FLAG_NAME = "TSTG.snapToGrid"
 // Initialize module
 Hooks.once('init', function () {
     console.log(`Initializing "${MODULE_NAME}"`);
+    const DRAG_RULER_ENABLED = game.modules.get('drag-ruler')?.active;
 
     class SnapToGridButton {
         
@@ -83,12 +84,11 @@ Hooks.once('init', function () {
     Hooks.on("renderTokenHUD", (...args) => SnapToGridButton.prepTokenHUD(...args));
     
     // New tokens have grid snapping on by default
-    Hooks.on('createToken', async (scene, tokenData, options, user_id) => {
-        let token = canvas.tokens.get(tokenData._id);
-        let value = token.document.getFlag(MODULE_ID, FLAG_NAME);
+    Hooks.on('createToken', async (tokenDocument, options, user_id) => {
+        let value = tokenDocument.getFlag(MODULE_ID, FLAG_NAME);
         if(value == undefined)
         {
-            await token.document.setFlag(MODULE_ID, FLAG_NAME, true);
+            await tokenDocument.setFlag(MODULE_ID, FLAG_NAME, true);
         }
     });
 
@@ -101,12 +101,12 @@ Hooks.once('init', function () {
         await SnapToGridButton.fixUndefinedSnapToGridValue(token);
     });
 
+    // JavaScript doesn't let you write to read only properties (duh), so make a copy and set it ourselves.
+    // "WOW", you might be thinking, "What the fuck is this?". Well, sometimes I hate JavaScript.
+    // All of a MouseEvent's properties are readonly and can't be copied to a new object
+    // through normal means. So I have to MANUALLY copy over each property. Fun.
     function modifyPointerEventForShiftKey(event)
     {
-        // JavaScript doesn't let you write over read only properties, so make a copy and set it ourselves
-        // "WOW", you might be thinking, "What the fuck is this?". Well, sometimes I hate JavaScript
-        //      All of a MouseEvent's properties are readonly and can't be copied to a new object
-        //      through normal means. So I have to MANUALLY copy over each property. Fun.
         return new PointerEvent(event.type, {
             altKey: event.altKey, bubbles: event.bubbles, button: event.button, buttons: event.buttons, 
             cancelBubble: event.cancelBubble, cancelable: event.cancelable,
@@ -127,12 +127,9 @@ Hooks.once('init', function () {
         });
     }
 
+    // Same as modifyPointerEventForShiftKey
     function modifyMouseEventForShiftKey(event)
     {
-        // JavaScript doesn't let you write over read only properties, so make a copy and set it ourselves
-        // "WOW", you might be thinking, "What the fuck is this?". Well, sometimes I hate JavaScript
-        //      All of a MouseEvent's properties are readonly and can't be copied to a new object
-        //      through normal means. So I have to MANUALLY copy over each property. Fun.
         return new MouseEvent(event.type, {
             altKey: event.altKey, bubbles: event.bubbles, button: event.button, buttons: event.buttons, 
             cancelBubble: event.cancelBubble, cancelable: event.cancelable,
@@ -153,12 +150,9 @@ Hooks.once('init', function () {
         });
     }
 
+    // Same as modifyPointerEventForShiftKey
     function modifyKeyboardEventForShiftKey(event)
     {
-        // JavaScript doesn't let you write over readonly properties, so make a copy and set it ourselves
-        // "WOW", you might be thinking, "What the fuck is this?". Well, sometimes I hate JavaScript.
-        //      All of a KeyboardEvent's properties are readonly and can't be copied to a new object
-        //      through normal means. So I have to MANUALLY copy over each property. Fun.
         return new KeyboardEvent(event.type, {
             altKey: event.altKey, bubbles: event.bubbles, 
             cancelBubble: event.cancelBubble, cancelable: event.cancelable,
@@ -176,125 +170,59 @@ Hooks.once('init', function () {
         });
     }
 
-    function testing(original)
-    {
-        let eventType = original.constructor.name;
-        let eventCopy = document.createEvent(eventType);
-        
-        if (eventType === "MouseEvent") {
-            console.log("MouseEvent hit")
-            original.initMouseEvent(
-                original.type, original.bubbles, original.cancelable,
-                original.view, original.detail, original.screenX, original.screenY,
-                original.clientX, original.clientY, original.ctrlKey,
-                original.altKey, true, original.metaKey,
-                original.button, original.relatedTarget
-            );
-        }
-
-        if (eventType === "PointerEvent") {
-            console.log("PointerEvent hit")
-            original.initPointerEvent(
-                original.type, original.bubbles, original.cancelable,
-                original.view, original.detail, original.screenX, original.screenY,
-                original.clientX, original.clientY, original.ctrlKey,
-                original.altKey, true, original.metaKey,
-                original.button, original.relatedTarget,
-                original.offsetX, original.offsetY, original.width, original.height,
-                original.pressure, original.rotation,
-                original.tiltX, original.tiltY,
-                original.pointerId, original.pointerType,
-                original.timeStamp, original.isPrimary
-            );
-        }
-
-        return original;
-    }
-
     // Wrap around Foundry so we can move tokens off of the grid
     libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftDrop', function (wrapped, ...args) {
 
-            // Get our original pointer event
-            let event = args[0].data.originalEvent;
-
-            // Grab if snapping to grid is enabled
-            // If not, then just use the default behaviour
-            if(event.shiftKey || this.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-
-            //Overwrite the shiftKey property so Foundry thinks we are holding it down
-            args[0].data.originalEvent = modifyPointerEventForShiftKey(event);
-
-			// Call original function
+        // Default behavior if this is a gridless map, the shift key is already being held, or grid snapping is enabled
+        let event = args[0].data.originalEvent;
+        if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || event.shiftKey || 
+            this.document.getFlag(MODULE_ID, FLAG_NAME)) {
             return wrapped(...args);
-		
+        }
+
+        //Overwrite the shiftKey property so Foundry thinks we are holding it down
+        args[0].data.originalEvent = modifyPointerEventForShiftKey(event);
+
+        return wrapped(...args);
     }, 'WRAPPER');
 
-    if(!game.modules.get('drag-ruler')?.active)
+    if(DRAG_RULER_ENABLED)
     {
+        // Wrap around Foundry so rulers can move tokens off grid
         libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
-            
-            const draggedToken = this._getMovementToken();
-            if ( !draggedToken ) {
-                return wrapped(...args);
-            }
-
-            // Grab if snapping to grid is enabled
-            let value = draggedToken.document.getFlag(MODULE_ID, FLAG_NAME);
-
-            if (value) {
-                return wrapped(...args);
-            }
-            console.log(args[0]);
+                
+            // Default behavior if this is a gridless map or the shift key is already being held.
+            // Also check if this is a drag ruler and grid snapping is enabled
             let event = args[0];
+            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || event.shiftKey ||
+                !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
+                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return wrapped(...args);
+            }
+
             args[0] = modifyKeyboardEventForShiftKey(event);
-            console.log(args[0]);
-
-            console.log("Ruler.prototype.moveToken");
-            return wrapped(...args);
-        }, 'WRAPPER');
-
-    }
-    else
-    {
-        libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
-            
-            // Grab if snapping to grid is enabled, let default behaviour occur if it is
-            let event = args[0];
-            if (!this.isDragRuler || event.shiftKey || this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-
-            args[0] = modifyPointerEventForShiftKey(event);
 
             return wrapped(...args);
         }, 'WRAPPER');
 
-        libWrapper.register(MODULE_ID, 'MouseInteractionManager.prototype.cancel', function (wrapped, ...args) {
-
-            // Grab if snapping to grid is enabled, let default behaviour occur if it is
-            let event = args[0];
-            if (!(this.object instanceof Token) || !canvas.controls.ruler.isDragRuler || 
-                event.shiftKey || this.object.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-            
-            args[0] = modifyMouseEventForShiftKey(event);
-            
-            return wrapped(...args);
-        }, 'WRAPPER');
-
+        // Wrap around Foundry so ruler measurements will change if grid snapping is disabled
         libWrapper.register(MODULE_ID, 'Ruler.prototype.measure', function (wrapped, ...args) {
 
-            // Probably got socketed this over the web so we need to add an options argument
-            if(args.length < 2)
-            {
+            // Probably got socketed this over the web so we need to add an options argument.
+            if(args.length < 2) {
                 args.push({snap: true}); // default snap to true and let the token handle it
             }
 
-            // Grab if snapping to grid is enabled, let default behaviour occur if it is
-            if (!this.isDragRuler || !args[1].snap || this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
+            // Double check that snap is defined
+            if(args[1].snap == undefined) {
+                args[1].snap = true; // default snap to true and let the token handle it
+            }
+
+            // Default behavior if this is a gridless map or if snap is already disabled
+            // Also check if this is a drag ruler and grid snapping is enabled
+            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || !args[1].snap ||
+                !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
+                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
                 return wrapped(...args);
             }
 
@@ -302,6 +230,22 @@ Hooks.once('init', function () {
             args[1].snap = false;
 
             return wrapped(...args);;
+        }, 'WRAPPER');
+
+        libWrapper.register(MODULE_ID, 'MouseInteractionManager.prototype.cancel', function (wrapped, ...args) {
+
+            // Default behavior if this is a gridless map or if snap is already disabled
+            // Also check if this is a drag ruler and grid snapping is enabled
+            let event = args[0];
+            if (canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || event.shiftKey ||
+                !(this.object instanceof Token) || !canvas.controls.ruler.isDragRuler || 
+                this.object.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return wrapped(...args);
+            }
+            
+            args[0] = modifyMouseEventForShiftKey(event);
+            
+            return wrapped(...args);
         }, 'WRAPPER');
     }
 });
