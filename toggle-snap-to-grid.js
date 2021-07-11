@@ -210,17 +210,12 @@ Hooks.once('init', function () {
 
             // Probably got socketed this over the web so we need to add an options argument.
             if(args.length < 2) {
-                args.push({snap: true}); // default snap to true and let the token handle it
+                args.push({snap: canvas.grid.type !== CONST.GRID_TYPES.GRIDLESS}); // default snap to the current grid type
             }
 
-            // Double check that snap is defined
-            if(args[1].snap == undefined) {
-                args[1].snap = true; // default snap to true and let the token handle it
-            }
-
-            // Default behavior if this is a gridless map or if snap is already disabled
+            // Default behavior if this is a gridless map
             // Also check if this is a drag ruler and grid snapping is enabled
-            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || !args[1].snap ||
+            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
                 !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
                 this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
                 return wrapped(...args);
@@ -228,6 +223,7 @@ Hooks.once('init', function () {
 
             args[1].gridSpaces = false;
             args[1].snap = false;
+            args[1].ignoreGrid = true;
 
             return wrapped(...args);;
         }, 'WRAPPER');
