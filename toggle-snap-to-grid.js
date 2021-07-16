@@ -101,6 +101,101 @@ Hooks.once('init', function () {
         await SnapToGridButton.fixUndefinedSnapToGridValue(token);
     });
 
+    if(!DRAG_RULER_ENABLED) {
+        // Wrap around Foundry so we can move tokens off of the grid
+        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftDrop', function (wrapped, ...args) {
+
+            // Default behavior if this is a gridless map, the shift key is already being held, or grid snapping is enabled
+            let event = args[0].data.originalEvent;
+            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || event.shiftKey || 
+                this.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return wrapped(...args);
+            }
+
+            //Overwrite the shiftKey property so Foundry thinks we are holding it down
+            args[0].data.originalEvent = modifyPointerEventForShiftKey(event);
+
+            return wrapped(...args);
+        }, 'WRAPPER');
+    }
+    else if(DRAG_RULER_ENABLED)
+    {
+        // Wrap around Foundry so rulers can move tokens off grid
+        libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
+                
+            // Default behavior if this is a gridless map or the shift key is already being held.
+            // Also check if this is a drag ruler and grid snapping is enabled
+            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
+                !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
+                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return wrapped(...args);
+            }
+
+            // Allow shift key to reverse the snap
+            if(!args[0].shiftKey) {
+                args.push({toggleSnapToGridActive: true});
+            }
+
+            return wrapped(...args);
+        }, 'WRAPPER');
+
+        // Wrap around Foundry so ruler measurements will change if grid snapping is disabled
+        libWrapper.register(MODULE_ID, 'Ruler.prototype.measure', function (wrapped, ...args) {
+
+            // Probably got socketed this over the web so we need to add an options argument.
+            if(args.length < 2) {
+                args.push({snap: canvas.grid.type !== CONST.GRID_TYPES.GRIDLESS}); // default snap to the current grid type
+            }
+
+            // Default behavior if this is a gridless map
+            // Also check if this is a drag ruler and grid snapping is enabled
+            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
+                !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
+                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return wrapped(...args);
+            }
+
+            // Override snapping based on what a socketed ruler is doing
+            if(this.socketIsSnappedToGrid != undefined) {
+                args[1].snap = !this.socketIsSnappedToGrid;
+                args[1].socketOverrideAlreadySet = true;
+            }
+
+            // Allow shift key to reverse the snap
+            if (args[1].snap) {
+                args[1].gridSpaces = false;
+                args[1].snap = false;
+                args[1].ignoreGrid = true;
+            }
+            else {
+                // If snap to grid is off and we're holding shift, toggle snap to grid on again
+                args[1].snap = true;
+            }
+
+            return wrapped(...args);;
+        }, 'WRAPPER');
+
+        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
+
+            // Default behavior if this is a gridless map or if snap is already disabled
+            // Also check if this is a drag ruler and grid snapping is enabled
+            if (canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
+                !canvas.controls.ruler.isDragRuler || 
+                this.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return wrapped(...args);
+            }
+            
+            // Allow shift key to reverse the snap
+            if(!args[0].shiftKey) {
+                args.push({toggleSnapToGridActive: true});
+            }
+
+            args.push({toggleSnapToGridActive: true});
+            
+            return wrapped(...args);
+        }, 'WRAPPER');
+
+        /*
     // JavaScript doesn't let you write to read only properties (duh), so make a copy and set it ourselves.
     // "WOW", you might be thinking, "What the fuck is this?". Well, sometimes I hate JavaScript.
     // All of a MouseEvent's properties are readonly and can't be copied to a new object
@@ -168,67 +263,9 @@ Hooks.once('init', function () {
             type: event.type, view: event.view,
             which: event.which
         });
-    }
+    }*/
 
-    // Wrap around Foundry so we can move tokens off of the grid
-    libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftDrop', function (wrapped, ...args) {
-
-        // Default behavior if this is a gridless map, the shift key is already being held, or grid snapping is enabled
-        let event = args[0].data.originalEvent;
-        if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || event.shiftKey || 
-            this.document.getFlag(MODULE_ID, FLAG_NAME)) {
-            return wrapped(...args);
-        }
-
-        //Overwrite the shiftKey property so Foundry thinks we are holding it down
-        args[0].data.originalEvent = modifyPointerEventForShiftKey(event);
-
-        return wrapped(...args);
-    }, 'WRAPPER');
-
-    if(DRAG_RULER_ENABLED)
-    {
-        // Wrap around Foundry so rulers can move tokens off grid
-        libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
-                
-            // Default behavior if this is a gridless map or the shift key is already being held.
-            // Also check if this is a drag ruler and grid snapping is enabled
-            let event = args[0];
-            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS || event.shiftKey ||
-                !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
-                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-
-            args[0] = modifyKeyboardEventForShiftKey(event);
-
-            return wrapped(...args);
-        }, 'WRAPPER');
-
-        // Wrap around Foundry so ruler measurements will change if grid snapping is disabled
-        libWrapper.register(MODULE_ID, 'Ruler.prototype.measure', function (wrapped, ...args) {
-
-            // Probably got socketed this over the web so we need to add an options argument.
-            if(args.length < 2) {
-                args.push({snap: canvas.grid.type !== CONST.GRID_TYPES.GRIDLESS}); // default snap to the current grid type
-            }
-
-            // Default behavior if this is a gridless map
-            // Also check if this is a drag ruler and grid snapping is enabled
-            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
-                !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
-                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-
-            args[1].gridSpaces = false;
-            args[1].snap = false;
-            args[1].ignoreGrid = true;
-
-            return wrapped(...args);;
-        }, 'WRAPPER');
-
-        libWrapper.register(MODULE_ID, 'MouseInteractionManager.prototype.cancel', function (wrapped, ...args) {
+        /*libWrapper.register(MODULE_ID, 'MouseInteractionManager.prototype.cancel', function (wrapped, ...args) {
 
             // Default behavior if this is a gridless map or if snap is already disabled
             // Also check if this is a drag ruler and grid snapping is enabled
@@ -239,9 +276,10 @@ Hooks.once('init', function () {
                 return wrapped(...args);
             }
             
-            args[0] = modifyMouseEventForShiftKey(event);
+            args.push({toggleSnapToGridActive: true});
+            //args[0] = modifyMouseEventForShiftKey(event);
             
             return wrapped(...args);
-        }, 'WRAPPER');
+        }, 'WRAPPER');*/
     }
 });
