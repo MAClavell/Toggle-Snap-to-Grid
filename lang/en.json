@@ -1,3 +1,5 @@
 {
-	"TSTG.TooltipText": "Click to toggle grid snapping for this token"
+	"TSTG.TooltipText": "Click to toggle grid snapping for this token",
+	"TSTG.DragRulerSettingName": "Drag Ruler Grid Highlighting",
+	"TSTG.DragRulerSettingHint": "Should Drag Ruler highlight the grid when dragging an unsnapped token."
 }

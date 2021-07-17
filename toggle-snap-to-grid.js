@@ -148,16 +148,14 @@ Hooks.once('init', function () {
     else if(DRAG_RULER_ENABLED)
     {
         const DRAG_RULER_HIGHLIGHT_SETTING_NAME = "highlight_setting";
-        const DRAG_RULER_HIGHLIGHT_SETTING_NO_HIGHLIGHT = 0;
-        const DRAG_RULER_HIGHLIGHT_SETTING_HIGHLIGHT = 1;
 
         let dragRulerHighlightSetting;
         function parseDragRulerHighlightSetting(newValue) {
-            if(newValue == "nohighlight") {
-                dragRulerHighlightSetting = DRAG_RULER_HIGHLIGHT_SETTING_NO_HIGHLIGHT;
+            if(newValue) {
+                dragRulerHighlightSetting = true;
             }
             else {
-                dragRulerHighlightSetting = DRAG_RULER_HIGHLIGHT_SETTING_HIGHLIGHT;
+                dragRulerHighlightSetting = false;
             }
         }
 
@@ -165,12 +163,8 @@ Hooks.once('init', function () {
             name: game.i18n.localize("TSTG.DragRulerSettingName"),
             hint: game.i18n.localize("TSTG.DragRulerSettingHint"),
             scope: "client",
-            type: String,
-            choices: {
-                "nohighlight": game.i18n.localize("TSTG.DragRulerSettingGridless"),
-                "highlight": game.i18n.localize("TSTG.DragRulerSettingGridded")
-            },
-            default: "nohighlight",
+            type: Boolean,
+            default: false,
             config: true,
             onChange: value => {
                 parseDragRulerHighlightSetting(value);
@@ -224,13 +218,14 @@ Hooks.once('init', function () {
             }
 
             if (args[1].snap) {
-                if(dragRulerHighlightSetting == DRAG_RULER_HIGHLIGHT_SETTING_NO_HIGHLIGHT) {
+                // Grid highlighting is based on user settings
+                if(!dragRulerHighlightSetting) {
                     args[1].gridSpaces = false;
                     args[1].ignoreGrid = true;
                 }
                 args[1].snap = false;
             }
-            // If snap to grid is off at this point it is probably because we are holding shift, toggle snap to grid on again
+            // If snapping is off at this point it is probably because we are holding shift, toggle snap on again
             else {
                 args[1].snap = true;
             }
