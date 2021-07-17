@@ -173,7 +173,7 @@ Hooks.once('init', function () {
 
         parseDragRulerHighlightSetting(game.settings.get(MODULE_ID, DRAG_RULER_HIGHLIGHT_SETTING_NAME));
 
-        // Wrap around Foundry so drag rulers can place waypoints correctly
+        // Wrap around Foundry so drag rulers can place and remove waypoints correctly
         libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
                 
             // Default behavior if this is a gridless map
@@ -194,6 +194,14 @@ Hooks.once('init', function () {
 
             return wrapped(...args);
         }, 'WRAPPER');
+
+        // Override Foundry so drag rulers will measure correctly after removing a waypoint
+        libWrapper.register(MODULE_ID, 'Ruler.prototype._removeWaypoint', function (...args) {
+            this.waypoints.pop();
+            this.labels.removeChild(this.labels.children.pop());
+            args[1].gridSpaces = args[1].snap;
+            this.measure(args[0], args[1]);
+        }, 'OVERRIDE');
 
         // Wrap around Foundry so ruler measurements will change if grid snapping is disabled
         libWrapper.register(MODULE_ID, 'Ruler.prototype.measure', function (wrapped, ...args) {
@@ -217,23 +225,30 @@ Hooks.once('init', function () {
                 args[1].socketOverrideAlreadySet = true;
             }
 
-            if (args[1].snap) {
+            // Ensure everything is correctly set. measure() is called when moving the mouse and removing waypoints
+            if (args[1].snap || args[1].toggleSnapToGridActive) {
                 // Grid highlighting is based on user settings
                 if(!dragRulerHighlightSetting) {
                     args[1].gridSpaces = false;
                     args[1].ignoreGrid = true;
                 }
+                else {
+                    args[1].gridSpaces = true;
+                    args[1].ignoreGrid = false;
+                }
                 args[1].snap = false;
             }
             // If snapping is off at this point it is probably because we are holding shift, toggle snap on again
-            else {
+            else if(!args[1].toggleSnapToGridActive) {
                 args[1].snap = true;
+                args[1].gridSpaces = true;
+                args[1].ignoreGrid = false;
             }
 
             return wrapped(...args);;
         }, 'WRAPPER');
 
-        // Wrap around Foundry so drag rulers can place waypoints correctly
+        // Wrap around Foundry so drag rulers can place and remove waypoints correctly
         libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
 
             // Default behavior if this is a gridless map
