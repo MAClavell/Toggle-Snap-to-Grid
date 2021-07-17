@@ -147,6 +147,38 @@ Hooks.once('init', function () {
     }
     else if(DRAG_RULER_ENABLED)
     {
+        const DRAG_RULER_HIGHLIGHT_SETTING_NAME = "highlight_setting";
+        const DRAG_RULER_HIGHLIGHT_SETTING_NO_HIGHLIGHT = 0;
+        const DRAG_RULER_HIGHLIGHT_SETTING_HIGHLIGHT = 1;
+
+        let dragRulerHighlightSetting;
+        function parseDragRulerHighlightSetting(newValue) {
+            if(newValue == "nohighlight") {
+                dragRulerHighlightSetting = DRAG_RULER_HIGHLIGHT_SETTING_NO_HIGHLIGHT;
+            }
+            else {
+                dragRulerHighlightSetting = DRAG_RULER_HIGHLIGHT_SETTING_HIGHLIGHT;
+            }
+        }
+
+        game.settings.register(MODULE_ID, DRAG_RULER_HIGHLIGHT_SETTING_NAME, {
+            name: game.i18n.localize("TSTG.DragRulerSettingName"),
+            hint: game.i18n.localize("TSTG.DragRulerSettingHint"),
+            scope: "client",
+            type: String,
+            choices: {
+                "nohighlight": game.i18n.localize("TSTG.DragRulerSettingGridless"),
+                "highlight": game.i18n.localize("TSTG.DragRulerSettingGridded")
+            },
+            default: "nohighlight",
+            config: true,
+            onChange: value => {
+                parseDragRulerHighlightSetting(value);
+            }
+        });
+
+        parseDragRulerHighlightSetting(game.settings.get(MODULE_ID, DRAG_RULER_HIGHLIGHT_SETTING_NAME));
+
         // Wrap around Foundry so drag rulers can place waypoints correctly
         libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
                 
@@ -192,9 +224,11 @@ Hooks.once('init', function () {
             }
 
             if (args[1].snap) {
-                args[1].gridSpaces = false;
+                if(dragRulerHighlightSetting == DRAG_RULER_HIGHLIGHT_SETTING_NO_HIGHLIGHT) {
+                    args[1].gridSpaces = false;
+                    args[1].ignoreGrid = true;
+                }
                 args[1].snap = false;
-                args[1].ignoreGrid = true;
             }
             // If snap to grid is off at this point it is probably because we are holding shift, toggle snap to grid on again
             else {
