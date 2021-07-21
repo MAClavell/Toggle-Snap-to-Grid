@@ -174,6 +174,26 @@ Hooks.once('init', function () {
         parseDragRulerHighlightSetting(game.settings.get(MODULE_ID, DRAG_RULER_HIGHLIGHT_SETTING_NAME));
 
         // Wrap around Foundry so drag rulers can place and remove waypoints correctly
+        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
+
+            // Default behavior if this is a gridless map
+            // Also check if this isn't a drag ruler or if grid snapping is enabled
+            if (canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
+                !canvas.controls.ruler.isDragRuler || 
+                this.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return wrapped(...args);
+            }
+            
+            // Allow shift key to reverse the unsnap if it is being held down
+            if(!args[0].shiftKey) {
+                this.toggleSnapToGridData = {};
+                this.toggleSnapToGridData.toggleSnapToGridActive = true;
+            }
+
+            return wrapped(...args);
+        }, 'WRAPPER');
+
+        // Wrap around Foundry so drag rulers can place and remove waypoints correctly
         libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
                 
             // Default behavior if this is a gridless map
@@ -186,10 +206,8 @@ Hooks.once('init', function () {
 
             // Allow shift key to reverse the unsnap if it is being held down
             if(!args[0].shiftKey) {
-                if(args.length < 2) {
-                    args.push({});
-                }
-                args[1].toggleSnapToGridActive = true;
+                this.toggleSnapToGridData = {};
+                this.toggleSnapToGridData.toggleSnapToGridActive = true;
             }
 
             return wrapped(...args);
@@ -246,28 +264,6 @@ Hooks.once('init', function () {
             }
 
             return wrapped(...args);;
-        }, 'WRAPPER');
-
-        // Wrap around Foundry so drag rulers can place and remove waypoints correctly
-        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
-
-            // Default behavior if this is a gridless map
-            // Also check if this isn't a drag ruler or if grid snapping is enabled
-            if (canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
-                !canvas.controls.ruler.isDragRuler || 
-                this.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-            
-            // Allow shift key to reverse the unsnap if it is being held down
-            if(!args[0].shiftKey) {
-                if(args.length < 2) {
-                    args.push({});
-                }
-                args[1].toggleSnapToGridActive = true;
-            }
-
-            return wrapped(...args);
         }, 'WRAPPER');
     }
 });
