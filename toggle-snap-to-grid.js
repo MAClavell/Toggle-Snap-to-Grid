@@ -147,31 +147,43 @@ Hooks.once('init', function () {
     }
     else if(DRAG_RULER_ENABLED)
     {
-        const DRAG_RULER_HIGHLIGHT_SETTING_NAME = "highlight_setting";
+        const DRAG_RULER_MEASUREMENT_SETTING_NAME = "measurement_setting";
 
-        let dragRulerHighlightSetting;
-        function parseDragRulerHighlightSetting(newValue) {
-            if(newValue) {
-                dragRulerHighlightSetting = true;
+        const DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT = 0;
+        const DRAG_RULER_GRID_NO_HIGHLIGHT = 1;
+        const DRAG_RULER_GRID_HIGHLIGHT = 2;
+
+        let dragRulerMeasurementSetting;
+        function parseDragRulerMeasurementSetting(value) {
+            if(value == "gridNoHighlight") {
+                dragRulerMeasurementSetting = DRAG_RULER_GRID_NO_HIGHLIGHT;
+            }
+            else if(value == "gridHighlight") {
+                dragRulerMeasurementSetting = DRAG_RULER_GRID_HIGHLIGHT;
             }
             else {
-                dragRulerHighlightSetting = false;
+                dragRulerMeasurementSetting = DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT;
             }
         }
 
-        game.settings.register(MODULE_ID, DRAG_RULER_HIGHLIGHT_SETTING_NAME, {
-            name: game.i18n.localize("TSTG.DragRulerSettingName"),
-            hint: game.i18n.localize("TSTG.DragRulerSettingHint"),
+        game.settings.register(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME, {
+            name: game.i18n.localize("TSTG.DragRulerMeasurementSettingName"),
+            hint: game.i18n.localize("TSTG.DragRulerMeasurementSettingHint"),
             scope: "client",
-            type: Boolean,
-            default: false,
+            type: String,
+            choices: {
+                "ignoreGridNoHighlight": game.i18n.localize("TSTG.DragRulerMeasurementSettingIgnoreGridNoHighlight"),
+                "gridNoHighlight": game.i18n.localize("TSTG.DragRulerMeasurementSettingGridNoHighlight"),
+                "gridHighlight": game.i18n.localize("TSTG.DragRulerMeasurementSettingGridHighlight"),
+            },
+            default: "ignoreGridNoHighlight",
             config: true,
             onChange: value => {
-                parseDragRulerHighlightSetting(value);
+                parseDragRulerMeasurementSetting(value);
             }
         });
 
-        parseDragRulerHighlightSetting(game.settings.get(MODULE_ID, DRAG_RULER_HIGHLIGHT_SETTING_NAME));
+        parseDragRulerMeasurementSetting(game.settings.get(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME));
 
         // Wrap around Foundry so drag rulers can place and remove waypoints correctly
         libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
@@ -245,18 +257,23 @@ Hooks.once('init', function () {
 
             // Ensure everything is correctly set. measure() is called when moving the mouse and removing waypoints
             if (args[1].snap || args[1].toggleSnapToGridActive) {
-                // Grid highlighting is based on user settings
-                if(!dragRulerHighlightSetting) {
+                // Grid highlighting and measurement type is based on user settings
+                if(dragRulerMeasurementSetting == DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT) {
                     args[1].gridSpaces = false;
                     args[1].ignoreGrid = true;
                 }
-                else {
+                else if (dragRulerMeasurementSetting == DRAG_RULER_GRID_NO_HIGHLIGHT) {
+                    args[1].gridSpaces = false;
+                    args[1].ignoreGrid = false;
+                }
+                else { // DRAG_RULER_GRID_HIGHLIGHT
                     args[1].gridSpaces = true;
                     args[1].ignoreGrid = false;
                 }
+
                 args[1].snap = false;
             }
-            // If snapping is off at this point it is probably because we are holding shift, toggle snap on again
+            // If snapping is off at this point it is probably because we are holding shift, toggle snap and everything back on
             else if(!args[1].toggleSnapToGridActive) {
                 args[1].snap = true;
                 args[1].gridSpaces = true;
