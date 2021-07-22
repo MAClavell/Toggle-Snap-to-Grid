@@ -6,7 +6,7 @@ A module for Foundry VTT that lets you disable a grid snapping for tokens with a
 ![ToggleSnapToGrid](https://user-images.githubusercontent.com/25129246/125176345-ad184d00-e1a0-11eb-8be4-d04e5fe329c0.gif)
 
 ## Drag Ruler Support
-This module supports Drag Ruler and changes the ruler's measurement type based on if grid snapping is enabled. When Drag Ruler is installed an option will appear in the settings menu that allows you to choose if you want the grid to be highlighted or not when dragging a token with grid snapping off.
+This module supports Drag Ruler and changes the ruler's measurement type based on if grid snapping is enabled. When Drag Ruler is installed an option will appear in the settings menu that allows you to choose how you want measurements and highlighting to work when dragging an unsnapped token. This option is client specific so all players can choose what best fits them.
 
 **Note: Offical DragRuler support needs some code changes on their end and is pending. Use my fork for the time being.**
 
