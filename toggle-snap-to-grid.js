@@ -196,10 +196,12 @@ Hooks.once('init', function () {
                 return wrapped(...args);
             }
             
-            // Allow shift key to reverse the unsnap if it is being held down
+            // Tell drag ruler to not snap waypoints to the grid if shift is not being held down
+            // Just add a temporary variable to the drag ruler instance to get around enhanced terrain layer
             if(!args[0].shiftKey) {
-                this.toggleSnapToGridData = {};
-                this.toggleSnapToGridData.toggleSnapToGridActive = true;
+                this.snapOverride = {};
+                this.snapOverride.active = true;
+                this.snapOverride.snap = false;
             }
 
             return wrapped(...args);
@@ -216,10 +218,12 @@ Hooks.once('init', function () {
                 return wrapped(...args);
             }
 
-            // Allow shift key to reverse the unsnap if it is being held down
+            // Tell drag ruler to not snap waypoints to the grid if shift is not being held down
+            // Just add a temporary variable to the drag ruler instance to get around enhanced terrain layer
             if(!args[0].shiftKey) {
-                this.toggleSnapToGridData = {};
-                this.toggleSnapToGridData.toggleSnapToGridActive = true;
+                this.snapOverrideData = {};
+                this.snapOverrideData.active = true;
+                this.snapOverrideData.snap = false;
             }
 
             return wrapped(...args);
@@ -256,7 +260,7 @@ Hooks.once('init', function () {
             }
 
             // Ensure everything is correctly set. measure() is called when moving the mouse and removing waypoints
-            if (args[1].snap || args[1].toggleSnapToGridActive) {
+            if (args[1].snap || args[1].snapOverrideActive) {
                 // Grid highlighting and measurement type is based on user settings
                 if(dragRulerMeasurementSetting == DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT) {
                     args[1].gridSpaces = false;
@@ -274,7 +278,7 @@ Hooks.once('init', function () {
                 args[1].snap = false;
             }
             // If snapping is off at this point it is probably because we are holding shift, toggle snap and everything back on
-            else if(!args[1].toggleSnapToGridActive) {
+            else if(!args[1].snapOverrideActive) {
                 args[1].snap = true;
                 args[1].gridSpaces = true;
                 args[1].ignoreGrid = false;
