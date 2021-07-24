@@ -249,7 +249,6 @@ Hooks.once('init', function () {
         libWrapper.register(MODULE_ID, 'Ruler.prototype._removeWaypoint', function (...args) {
             this.waypoints.pop();
             this.labels.removeChild(this.labels.children.pop());
-            args[1].gridSpaces = args[1].snap;
             this.measure(args[0], args[1]);
         }, 'OVERRIDE');
 
