@@ -1,8 +1,12 @@
 {
 	"TSTG.TooltipText": "Click to toggle grid snapping for this token",
+
 	"TSTG.DragRulerMeasurementSettingName": "Drag Ruler Measurement/Highlight",
 	"TSTG.DragRulerMeasurementSettingHint": "Configure how Drag Ruler looks when dragging an unsnapped token.",
 	"TSTG.DragRulerMeasurementSettingIgnoreGridNoHighlight": "Euclidean Measurement and No Grid Highlighting",
 	"TSTG.DragRulerMeasurementSettingGridNoHighlight": "Gridded Measurement and No Grid Highlighting",
-	"TSTG.DragRulerMeasurementSettingGridHighlight": "Gridded Measurement and Grid Highlighting"
+	"TSTG.DragRulerMeasurementSettingGridHighlight": "Gridded Measurement and Grid Highlighting",
+
+	"TSTG.DragRulerShiftSettingName": "Use above setting when holding shift?",
+	"TSTG.DragRulerShiftSettingHint": "Should the Drag Ruler ruler use the above setting when holding shift while dragging an unsnapped token or should it revert to the map's current default ruler configuration."
 }

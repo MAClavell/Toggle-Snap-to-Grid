@@ -148,12 +148,15 @@ Hooks.once('init', function () {
     else if(DRAG_RULER_ENABLED)
     {
         const DRAG_RULER_MEASUREMENT_SETTING_NAME = "measurement_setting";
+        const DRAG_RULER_SHIFT_SETTING_NAME = "shift_setting";
 
         const DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT = 0;
         const DRAG_RULER_GRID_NO_HIGHLIGHT = 1;
         const DRAG_RULER_GRID_HIGHLIGHT = 2;
 
         let dragRulerMeasurementSetting;
+        let dragRulerShiftSetting;
+
         function parseDragRulerMeasurementSetting(value) {
             if(value == "gridNoHighlight") {
                 dragRulerMeasurementSetting = DRAG_RULER_GRID_NO_HIGHLIGHT;
@@ -183,7 +186,20 @@ Hooks.once('init', function () {
             }
         });
 
+        game.settings.register(MODULE_ID, DRAG_RULER_SHIFT_SETTING_NAME, {
+            name: game.i18n.localize("TSTG.DragRulerShiftSettingName"),
+            hint: game.i18n.localize("TSTG.DragRulerShiftSettingHint"),
+            scope: "client",
+            type: Boolean,
+            default: false,
+            config: true,
+            onChange: value => {
+                dragRulerShiftSetting = value;
+            }
+        });
+
         parseDragRulerMeasurementSetting(game.settings.get(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME));
+        dragRulerShiftSetting = game.settings.get(MODULE_ID, DRAG_RULER_SHIFT_SETTING_NAME);
 
         // Wrap around Foundry so drag rulers can place and remove waypoints correctly
         libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
@@ -237,6 +253,22 @@ Hooks.once('init', function () {
             this.measure(args[0], args[1]);
         }, 'OVERRIDE');
 
+        function setMeasurementAndHighlightOptions(options) {
+            // Grid highlighting and measurement type is based on user settings
+            if(dragRulerMeasurementSetting == DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT) {
+                options.gridSpaces = false;
+                options.ignoreGrid = true;
+            }
+            else if (dragRulerMeasurementSetting == DRAG_RULER_GRID_NO_HIGHLIGHT) {
+                options.gridSpaces = false;
+                options.ignoreGrid = false;
+            }
+            else { // DRAG_RULER_GRID_HIGHLIGHT
+                options.gridSpaces = true;
+                options.ignoreGrid = false;
+            }
+        }
+
         // Wrap around Foundry so ruler measurements will change if grid snapping is disabled
         libWrapper.register(MODULE_ID, 'Ruler.prototype.measure', function (wrapped, ...args) {
 
@@ -261,27 +293,15 @@ Hooks.once('init', function () {
 
             // Ensure everything is correctly set. measure() is called when moving the mouse and removing waypoints
             if (args[1].snap || args[1].snapOverrideActive) {
-                // Grid highlighting and measurement type is based on user settings
-                if(dragRulerMeasurementSetting == DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT) {
-                    args[1].gridSpaces = false;
-                    args[1].ignoreGrid = true;
-                }
-                else if (dragRulerMeasurementSetting == DRAG_RULER_GRID_NO_HIGHLIGHT) {
-                    args[1].gridSpaces = false;
-                    args[1].ignoreGrid = false;
-                }
-                else { // DRAG_RULER_GRID_HIGHLIGHT
-                    args[1].gridSpaces = true;
-                    args[1].ignoreGrid = false;
-                }
-
+                setMeasurementAndHighlightOptions(args[1]);
                 args[1].snap = false;
             }
             // If snapping is off at this point it is probably because we are holding shift, toggle snap and everything back on
             else if(!args[1].snapOverrideActive) {
+                if (dragRulerShiftSetting) {
+                    setMeasurementAndHighlightOptions(args[1]);
+                }
                 args[1].snap = true;
-                args[1].gridSpaces = true;
-                args[1].ignoreGrid = false;
             }
 
             return wrapped(...args);;
