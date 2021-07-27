@@ -201,6 +201,12 @@ Hooks.once('init', function () {
         parseDragRulerMeasurementSetting(game.settings.get(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME));
         dragRulerShiftSetting = game.settings.get(MODULE_ID, DRAG_RULER_SHIFT_SETTING_NAME);
 
+        function setSnapOverride(sourceObject) {
+            sourceObject.snapOverride = {};
+            sourceObject.snapOverride.active = true;
+            sourceObject.snapOverride.snap = false;
+        }
+
         // Wrap around Foundry so drag rulers can place and remove waypoints correctly
         libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
 
@@ -215,9 +221,7 @@ Hooks.once('init', function () {
             // Tell drag ruler to not snap waypoints to the grid if shift is not being held down
             // Just add a temporary variable to the drag ruler instance to get around enhanced terrain layer
             if(!args[0].shiftKey) {
-                this.snapOverride = {};
-                this.snapOverride.active = true;
-                this.snapOverride.snap = false;
+                setSnapOverride(this);
             }
 
             return wrapped(...args);
@@ -237,9 +241,7 @@ Hooks.once('init', function () {
             // Tell drag ruler to not snap waypoints to the grid if shift is not being held down
             // Just add a temporary variable to the drag ruler instance to get around enhanced terrain layer
             if(!args[0].shiftKey) {
-                this.snapOverrideData = {};
-                this.snapOverrideData.active = true;
-                this.snapOverrideData.snap = false;
+                setSnapOverride(this);
             }
 
             return wrapped(...args);
