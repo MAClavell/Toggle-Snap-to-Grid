@@ -148,14 +148,12 @@ Hooks.once('init', function () {
     else if(DRAG_RULER_ENABLED)
     {
         const DRAG_RULER_MEASUREMENT_SETTING_NAME = "measurement_setting";
-        const DRAG_RULER_SHIFT_SETTING_NAME = "shift_setting";
 
         const DRAG_RULER_IGNORE_GRID_NO_HIGHLIGHT = 0;
         const DRAG_RULER_GRID_NO_HIGHLIGHT = 1;
         const DRAG_RULER_GRID_HIGHLIGHT = 2;
 
         let dragRulerMeasurementSetting;
-        let dragRulerShiftSetting;
 
         function parseDragRulerMeasurementSetting(value) {
             if(value == "gridNoHighlight") {
@@ -186,20 +184,7 @@ Hooks.once('init', function () {
             }
         });
 
-        game.settings.register(MODULE_ID, DRAG_RULER_SHIFT_SETTING_NAME, {
-            name: game.i18n.localize("TSTG.DragRulerShiftSettingName"),
-            hint: game.i18n.localize("TSTG.DragRulerShiftSettingHint"),
-            scope: "client",
-            type: Boolean,
-            default: false,
-            config: true,
-            onChange: value => {
-                dragRulerShiftSetting = value;
-            }
-        });
-
         parseDragRulerMeasurementSetting(game.settings.get(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME));
-        dragRulerShiftSetting = game.settings.get(MODULE_ID, DRAG_RULER_SHIFT_SETTING_NAME);
 
         function setSnapOverride(sourceObject) {
             sourceObject.snapOverride = {};
@@ -273,11 +258,6 @@ Hooks.once('init', function () {
         // Wrap around Foundry so ruler measurements will change if grid snapping is disabled
         libWrapper.register(MODULE_ID, 'Ruler.prototype.measure', function (wrapped, ...args) {
 
-            // Probably got socketed this over the web so we need to add an options argument.
-            if(args.length < 2) {
-                args.push({snap: canvas.grid.type !== CONST.GRID_TYPES.GRIDLESS}); // default snap to the current grid type
-            }
-
             // Default behavior if this is a gridless map
             // Also check if this isn't a drag ruler or if grid snapping is enabled
             if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
@@ -286,23 +266,21 @@ Hooks.once('init', function () {
                 return wrapped(...args);
             }
 
-            // Override snapping based on what a socketed ruler is doing
-            if(this.socketIsSnappedToGrid != undefined) {
-                args[1].snap = !this.socketIsSnappedToGrid;
-                args[1].socketOverrideAlreadySet = true;
+            // Probably got socketed this over the web so we need to add an options argument.
+            if(args.length < 2) {
+                args.push({});
             }
 
-            // Ensure everything is correctly set. measure() is called when moving the mouse and removing waypoints
-            if (args[1].snap || args[1].snapOverrideActive) {
-                setMeasurementAndHighlightOptions(args[1]);
-                args[1].snap = false;
-            }
-            // If snapping is off at this point it is probably because we are holding shift, toggle snap and everything back on
-            else if(!args[1].snapOverrideActive) {
-                if (dragRulerShiftSetting) {
-                    setMeasurementAndHighlightOptions(args[1]);
-                }
+            // Set measurement and highlighting preset
+            setMeasurementAndHighlightOptions(args[1]);
+
+            // If snapping is already off at this point it is probably because we are holding shift, toggle snapping back on
+            if(args[1].snap !== undefined && !args[1].snap && !args[1].snapOverrideActive) {
                 args[1].snap = true;
+            }
+            // For all other cases we turn off snapping
+            else {
+                args[1].snap = false;
             }
 
             return wrapped(...args);;
