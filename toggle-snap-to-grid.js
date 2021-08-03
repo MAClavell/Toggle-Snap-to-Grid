@@ -101,51 +101,57 @@ Hooks.once('init', function () {
         await SnapToGridButton.fixUndefinedSnapToGridValue(token);
     });
 
-    if(!DRAG_RULER_ENABLED) {
-        // JavaScript doesn't let you write to read only properties (duh), so make a copy and set it ourselves.
-        // "WOW", you might be thinking, "What the fuck is this?". Sometimes I hate JavaScript.
-        // All of a MouseEvent's properties are readonly and can't be copied to a new object
-        // through normal means. So I have to MANUALLY copy over each property. Fun.
-        function modifyPointerEventForShiftKey(event, newValue)
-        {
-            return new PointerEvent(event.type, {
-                altKey: event.altKey, bubbles: event.bubbles, button: event.button, buttons: event.buttons, 
-                cancelBubble: event.cancelBubble, cancelable: event.cancelable,
-                clientX: event.clientX, clientY: event.clientY, composed: event.composed,
-                ctrlKey: event.ctrlKey, currentTarget: event.currentTarget, defaultPrevented: event.defaultPrevented,
-                detail: event.detail, eventPhase: event.eventPhase, fromElement: event.fromElement,
-                height: event.height, isPrimary: event.isPrimary, isTrusted: event.isTrusted,
-                layerX: event.layerX, layerY: event.layerY, metaKey: event.metaKey,
-                movementX: event.movementX, movementY: event.movementY, offsetX: event.offsetX, offsetY: event.offsetY,
-                pageX: event.pageX, pageY: event.pageY, path: event.path, pointerId: event.pointerId,
-                pointerType: event.pointerType, pressure: event.pressure, relatedTarget: event.relatedTarget,
-                returnValue: event.returnValue, screenX: event.screenX, screenY: event.screenY, 
-                shiftKey: newValue, // this is the only line we needed ;_;
-                sourceCapabilities: event.sourceCapabilities, srcElement: event.srcElement, tangentialPressure: event.tangentialPressure,
-                target: event.target, tiltX: event.tiltX, tiltY: event.tiltY, timeStamp: event.timeStamp,
-                toElement: event.toElement, twist: event.twist, type: event.type, view: event.view,
-                which: event.which, width: event.width, x: event.x, y: event.y
-            });
+    // JavaScript doesn't let you write to read only properties (duh), so make a copy and set it ourselves.
+    // "WOW", you might be thinking, "What the fuck is this?". Sometimes I hate JavaScript.
+    // All of a MouseEvent's properties are readonly and can't be copied to a new object
+    // through normal means. So I have to MANUALLY copy over each property. Fun.
+    function modifyPointerEventForShiftKey(event, newValue)
+    {
+        return new PointerEvent(event.type, {
+            altKey: event.altKey, bubbles: event.bubbles, button: event.button, buttons: event.buttons, 
+            cancelBubble: event.cancelBubble, cancelable: event.cancelable,
+            clientX: event.clientX, clientY: event.clientY, composed: event.composed,
+            ctrlKey: event.ctrlKey, currentTarget: event.currentTarget, defaultPrevented: event.defaultPrevented,
+            detail: event.detail, eventPhase: event.eventPhase, fromElement: event.fromElement,
+            height: event.height, isPrimary: event.isPrimary, isTrusted: event.isTrusted,
+            layerX: event.layerX, layerY: event.layerY, metaKey: event.metaKey,
+            movementX: event.movementX, movementY: event.movementY, offsetX: event.offsetX, offsetY: event.offsetY,
+            pageX: event.pageX, pageY: event.pageY, path: event.path, pointerId: event.pointerId,
+            pointerType: event.pointerType, pressure: event.pressure, relatedTarget: event.relatedTarget,
+            returnValue: event.returnValue, screenX: event.screenX, screenY: event.screenY, 
+            shiftKey: newValue, // this is the only line we needed ;_;
+            sourceCapabilities: event.sourceCapabilities, srcElement: event.srcElement, tangentialPressure: event.tangentialPressure,
+            target: event.target, tiltX: event.tiltX, tiltY: event.tiltY, timeStamp: event.timeStamp,
+            toElement: event.toElement, twist: event.twist, type: event.type, view: event.view,
+            which: event.which, width: event.width, x: event.x, y: event.y
+        });
+    }
+
+    // Wrap around Foundry so we can move tokens off of the grid
+    libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftDrop', function (wrapped, ...args) {
+
+        // Default behavior if this is a gridless map or if grid snapping is enabled
+        if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
+            this.document.getFlag(MODULE_ID, FLAG_NAME)) {
+            return wrapped(...args);
         }
 
-        // Wrap around Foundry so we can move tokens off of the grid
-        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftDrop', function (wrapped, ...args) {
-
-            // Default behavior if this is a gridless map or if grid snapping is enabled
-            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
-                this.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-
-            // Overwrite the shiftKey property so Foundry's behavior changes
-            // Allow shift key to reverse the unsnap if it is being held down
-            let event = args[0].data.originalEvent;
-            args[0].data.originalEvent = modifyPointerEventForShiftKey(event, !event.shiftKey);
-
+        // Drag Ruler has an option that by default disables the ruler when starting a token drag until a button is pressed.
+        // If a Token is moved in this way it reverts to default Foundry behavior, so we have to handle this case.
+        // 'isDragRuler' will let us know if the Drag Ruler is actively measuring or not.
+        if (DRAG_RULER_ENABLED && canvas.controls.ruler.isDragRuler) {
             return wrapped(...args);
-        }, 'WRAPPER');
-    }
-    else if(DRAG_RULER_ENABLED)
+        }
+
+        // Overwrite the shiftKey property so Foundry's behavior changes
+        // Allow shift key to reverse the unsnap if it is being held down
+        let event = args[0].data.originalEvent;
+        args[0].data.originalEvent = modifyPointerEventForShiftKey(event, !event.shiftKey);
+
+        return wrapped(...args);
+    }, 'WRAPPER');
+
+    if(DRAG_RULER_ENABLED)
     {
         const DRAG_RULER_MEASUREMENT_SETTING_NAME = "measurement_setting";
 
@@ -198,7 +204,7 @@ Hooks.once('init', function () {
             // Default behavior if this is a gridless map
             // Also check if this isn't a drag ruler or if grid snapping is enabled
             if (canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
-                !canvas.controls.ruler.isDragRuler || 
+                !canvas.controls.ruler.draggedEntity || 
                 this.document.getFlag(MODULE_ID, FLAG_NAME)) {
                 return wrapped(...args);
             }
@@ -206,7 +212,7 @@ Hooks.once('init', function () {
             // Tell drag ruler to not snap waypoints to the grid if shift is not being held down
             // Just add a temporary variable to the drag ruler instance to get around enhanced terrain layer
             if(!args[0].shiftKey) {
-                setSnapOverride(this);
+                setSnapOverride(canvas.controls.ruler);
             }
 
             return wrapped(...args);
@@ -218,7 +224,7 @@ Hooks.once('init', function () {
             // Default behavior if this is a gridless map
             // Also check if this isn't a drag ruler or if grid snapping is enabled
             if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
-                !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
+                !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
                 this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
                 return wrapped(...args);
             }
