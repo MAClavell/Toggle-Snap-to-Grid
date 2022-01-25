@@ -159,6 +159,10 @@ Hooks.once('init', function () {
         const DRAG_RULER_GRID_NO_HIGHLIGHT = 1;
         const DRAG_RULER_GRID_HIGHLIGHT = 2;
 
+        const DRAG_RULER_SETTINGS_KEY = "drag-ruler";
+        const DRAG_RULER_DISABLE_SNAP_KEY = "disableSnap";
+        const DRAG_RULER_CREATE_WAYPOINT_KEY = "createWaypoint";
+
         let dragRulerMeasurementSetting;
 
         function parseDragRulerMeasurementSetting(value) {
@@ -192,49 +196,36 @@ Hooks.once('init', function () {
 
         parseDragRulerMeasurementSetting(game.settings.get(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME));
 
+        function isDisableSnapKeybindDown() {
+            const disableSnapKeybinds = game.keybindings.get(DRAG_RULER_SETTINGS_KEY, DRAG_RULER_DISABLE_SNAP_KEY);
+            return disableSnapKeybinds.some(x => game.keyboard.downKeys.has(x.key));
+        }
+
         function setSnapOverride(sourceObject) {
             sourceObject.snapOverride = {};
             sourceObject.snapOverride.active = true;
             sourceObject.snapOverride.snap = false;
         }
 
-        // Wrap around Foundry so drag rulers can place and remove waypoints correctly
-        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
-
+        function checkAndSetSnapOverride(token) {
             // Default behavior if this is a gridless map
             // Also check if this isn't a drag ruler or if grid snapping is enabled
             if (canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
                 !canvas.controls.ruler.draggedEntity || 
-                this.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
+                token.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                return;
             }
             
-            // Tell drag ruler to not snap waypoints to the grid if shift is not being held down
+            // Tell drag ruler to not snap waypoints to the grid if the disable snap key is not being held down
             // Just add a temporary variable to the drag ruler instance to get around enhanced terrain layer
-            if(!args[0].shiftKey) {
+            if(!isDisableSnapKeybindDown()) {
                 setSnapOverride(canvas.controls.ruler);
             }
-
-            return wrapped(...args);
-        }, 'WRAPPER');
+        }
 
         // Wrap around Foundry so drag rulers can place and remove waypoints correctly
-        libWrapper.register(MODULE_ID, 'Ruler.prototype.moveToken', function (wrapped, ...args) {
-                
-            // Default behavior if this is a gridless map
-            // Also check if this isn't a drag ruler or if grid snapping is enabled
-            if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
-                !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
-                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
-                return wrapped(...args);
-            }
-
-            // Tell drag ruler to not snap waypoints to the grid if shift is not being held down
-            // Just add a temporary variable to the drag ruler instance to get around enhanced terrain layer
-            if(!args[0].shiftKey) {
-                setSnapOverride(this);
-            }
-
+        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
+            checkAndSetSnapOverride(this);
             return wrapped(...args);
         }, 'WRAPPER');
 
@@ -280,7 +271,7 @@ Hooks.once('init', function () {
             // Set measurement and highlighting preset
             setMeasurementAndHighlightOptions(args[1]);
 
-            // If snapping is already off at this point it is probably because we are holding shift, toggle snapping back on
+            // If snapping is already off at this point it is probably because we are holding the disable snap key, toggle snapping back on
             if(args[1].snap !== undefined && !args[1].snap && !args[1].snapOverrideActive) {
                 args[1].snap = true;
             }
@@ -291,5 +282,24 @@ Hooks.once('init', function () {
 
             return wrapped(...args);;
         }, 'WRAPPER');
+
+        // oof
+        // Override Drag Ruler's create waypoint keybind
+        // We need to call setSnapOverride before Drag Ruler does its logic
+        // This assumes that Drag Ruler was initialized before this module, which is a bad assumption but eh
+        function overrideDragRulerCreateWaypointKeybind() {
+            let keybind = game.keybindings.actions.get(`${DRAG_RULER_SETTINGS_KEY}.${DRAG_RULER_CREATE_WAYPOINT_KEY}`);
+            let prevOnDown = keybind.onDown;
+            game.keybindings.register(DRAG_RULER_SETTINGS_KEY, DRAG_RULER_CREATE_WAYPOINT_KEY, {
+                name: keybind.name,
+                onDown: () => {
+                    checkAndSetSnapOverride(canvas.controls.ruler.draggedEntity);
+                    prevOnDown();
+                },
+                editable: keybind.editable,
+                precedence: keybind.precedence,
+            });
+        }
+        overrideDragRulerCreateWaypointKeybind();
     }
 });
