@@ -83,15 +83,6 @@ Hooks.once('init', function () {
     // Hook our button onto the TokenHUD
     Hooks.on("renderTokenHUD", (...args) => SnapToGridButton.prepTokenHUD(...args));
     
-    // New tokens have grid snapping on by default
-    Hooks.on('createToken', async (tokenDocument, options, user_id) => {
-        let value = tokenDocument.getFlag(MODULE_ID, FLAG_NAME);
-        if(value == undefined)
-        {
-            await tokenDocument.setFlag(MODULE_ID, FLAG_NAME, true);
-        }
-    });
-
     // If we click on a token and our custom property is undefined, set it to true by default
     Hooks.on('controlToken', async (token, controlled) => {
         if(!controlled || token.data.flags[MODULE_ID]) {
