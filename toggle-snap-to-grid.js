@@ -27,7 +27,7 @@ Hooks.once('init', function () {
             const tokens = canvas.tokens.controlled.filter(async t => t.document.getFlag(MODULE_ID, FLAG_NAME) !== state);
             for(let t of tokens)
             {   
-                await this.setSnapToGrid(t, !state, t.data._id == token.data._id ? event.currentTarget : null);
+                await this.setSnapToGrid(t, !state, t.document.id == token.document.id ? event.currentTarget : null);
             }
         }
 
@@ -85,7 +85,7 @@ Hooks.once('init', function () {
     
     // If we click on a token and our custom property is undefined, set it to true by default
     Hooks.on('controlToken', async (token, controlled) => {
-        if(!controlled || token.data.flags[MODULE_ID]) {
+        if(!controlled || token.document.flags[MODULE_ID]) {
             return;
         }
 

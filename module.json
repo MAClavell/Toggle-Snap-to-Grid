@@ -1,24 +1,32 @@
 {
-	"name": "toggle-snap-to-grid",
-	"title": "Toggle Snap to Grid",
-	"description": "Adds a button to the Token UI that toggles grid snapping for that token. Helpful for RP maps!",
-	"author": "MAClavell",
-	"version": "2.7.1",
-	"minimumCoreVersion": "9",
-	"compatibleCoreVersion": "9",
-	"esmodules": [
-		"toggle-snap-to-grid.js"
-	],
-	"languages": [
-		{
-			"lang": "en",
-			"name": "English",
-			"path": "lang/en.json"
-		}
-	],
-	"manifest": "https://raw.githubusercontent.com/MAClavell/Toggle-Snap-to-Grid/main/module.json",
-	"url": "https://github.com/MAClavell/Toggle-Snap-to-Grid/",
-	"download": "https://github.com/MAClavell/Toggle-Snap-to-Grid/releases/download/2.7.1/Toggle-Snap-To-Grid-v2.7.1.zip",
-	"bugs": "https://github.com/MAClavell/Toggle-Snap-to-Grid/issues",
-    "readme": "https://raw.githubusercontent.com/MAClavell/Toggle-Snap-to-Grid/main/README.md"
+  "title": "Toggle Snap to Grid",
+  "description": "Adds a button to the Token UI that toggles grid snapping for that token. Helpful for RP maps!",
+  "version": "2.8.0",
+  "esmodules": [
+    "toggle-snap-to-grid.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json",
+      "flags": {}
+    }
+  ],
+  "manifest": "https://raw.githubusercontent.com/MAClavell/Toggle-Snap-to-Grid/main/module.json",
+  "url": "https://github.com/MAClavell/Toggle-Snap-to-Grid/",
+  "download": "https://github.com/MAClavell/Toggle-Snap-to-Grid/releases/download/2.8.0/Toggle-Snap-To-Grid-v2.8.0.zip",
+  "bugs": "https://github.com/MAClavell/Toggle-Snap-to-Grid/issues",
+  "readme": "https://raw.githubusercontent.com/MAClavell/Toggle-Snap-to-Grid/main/README.md",
+  "id": "toggle-snap-to-grid",
+  "authors": [
+    {
+      "name": "MAClavell",
+      "flags": {}
+    }
+  ],
+  "compatibility": {
+    "minimum": "10",
+    "verified": "10"
+  }
 }
