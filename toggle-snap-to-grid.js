@@ -2,29 +2,29 @@
 
 import {libWrapper} from './shim.js';
 
-const MODULE_NAME = "Toggle Snap to Grid";
-const MODULE_ID = "toggle-snap-to-grid";
-const FLAG_NAME = "TSTG.snapToGrid"
+const TSTG_MODULE_NAME = "Toggle Snap to Grid";
+const TSTG_MODULE_ID = "toggle-snap-to-grid";
+const TSTG_FLAG_NAME = "TSTG.snapToGrid"
 
 // Initialize module
 Hooks.once('init', function () {
-    console.log(`Initializing "${MODULE_NAME}"`);
+    console.log(`Initializing "${TSTG_MODULE_NAME}"`);
     const DRAG_RULER_ENABLED = game.modules.get('drag-ruler')?.active;
 
     class SnapToGridButton {
         
         // Toggle the grid snapping flag for a token
         static async toggleSnapToGrid(event, token) {
-            let state = token.document.getFlag(MODULE_ID, FLAG_NAME);
+            let state = token.document.getFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME);
 
             // Just in case, this fixes any cases where our flag is undefined
             if(state == undefined) {
                 await this.fixUndefinedSnapToGridValue(token, event.currentTarget);
-                state = token.document.getFlag(MODULE_ID, FLAG_NAME);
+                state = token.document.getFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME);
             }
 
             // Process each controlled token, as well as the reference token
-            const tokens = canvas.tokens.controlled.filter(async t => t.document.getFlag(MODULE_ID, FLAG_NAME) !== state);
+            const tokens = canvas.tokens.controlled.filter(async t => t.document.getFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME) !== state);
             for(let t of tokens)
             {   
                 await this.setSnapToGrid(t, !state, t.document.id == token.document.id ? event.currentTarget : null);
@@ -34,7 +34,7 @@ Hooks.once('init', function () {
         // Set the value of our grid snapping flag and
         //      toggle the TokenHUD button's visuals if available
         static async setSnapToGrid(token, newValue, uiButton = null) {
-            await token.document.setFlag(MODULE_ID, FLAG_NAME, newValue);
+            await token.document.setFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME, newValue);
 
             if(uiButton) {
                 uiButton.classList.toggle("active", newValue);
@@ -44,7 +44,7 @@ Hooks.once('init', function () {
         // Add the default value of a our grid snapping flag to the token
         //      in an event where it is not there
         static async fixUndefinedSnapToGridValue(token, uiButton = null) {
-            console.log(`${MODULE_NAME} found a token with no setToGrid flag. Adding...`);
+            console.log(`${TSTG_MODULE_NAME} found a token with no setToGrid flag. Adding...`);
             await this.setSnapToGrid(token, true, uiButton);
         }
            
@@ -75,7 +75,7 @@ Hooks.once('init', function () {
 
             // Set whether the button's visuals should be active or inactive 
             //      based on the token's grid snappng sate
-            let value = token.document.getFlag(MODULE_ID, FLAG_NAME);
+            let value = token.document.getFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME);
             snapButton.classList.toggle("active", value);
         }
     }
@@ -85,7 +85,7 @@ Hooks.once('init', function () {
     
     // If we click on a token and our custom property is undefined, set it to true by default
     Hooks.on('controlToken', async (token, controlled) => {
-        if(!controlled || token.document.flags[MODULE_ID]) {
+        if(!controlled || token.document.flags[TSTG_MODULE_ID]) {
             return;
         }
 
@@ -119,11 +119,11 @@ Hooks.once('init', function () {
     }
 
     // Wrap around Foundry so we can move tokens off of the grid
-    libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftDrop', function (wrapped, ...args) {
+    libWrapper.register(TSTG_MODULE_ID, 'Token.prototype._onDragLeftDrop', function (wrapped, ...args) {
 
         // Default behavior if this is a gridless map or if grid snapping is enabled
         if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
-            this.document.getFlag(MODULE_ID, FLAG_NAME)) {
+            this.document.getFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME)) {
             return wrapped(...args);
         }
 
@@ -138,6 +138,7 @@ Hooks.once('init', function () {
         // Allow shift key to reverse the unsnap if it is being held down
         let event = args[0].data.originalEvent;
         args[0].data.originalEvent = modifyPointerEventForShiftKey(event, !event.shiftKey);
+        args[0].shiftKey = !event.shiftKey;
 
         return wrapped(...args);
     }, 'WRAPPER');
@@ -168,7 +169,7 @@ Hooks.once('init', function () {
             }
         }
 
-        game.settings.register(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME, {
+        game.settings.register(TSTG_MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME, {
             name: game.i18n.localize("TSTG.DragRulerMeasurementSettingName"),
             hint: game.i18n.localize("TSTG.DragRulerMeasurementSettingHint"),
             scope: "client",
@@ -185,7 +186,7 @@ Hooks.once('init', function () {
             }
         });
 
-        parseDragRulerMeasurementSetting(game.settings.get(MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME));
+        parseDragRulerMeasurementSetting(game.settings.get(TSTG_MODULE_ID, DRAG_RULER_MEASUREMENT_SETTING_NAME));
 
         function isDisableSnapKeybindDown() {
             const disableSnapKeybinds = game.keybindings.get(DRAG_RULER_SETTINGS_KEY, DRAG_RULER_DISABLE_SNAP_KEY);
@@ -203,7 +204,7 @@ Hooks.once('init', function () {
             // Also check if this isn't a drag ruler or if grid snapping is enabled
             if (canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
                 !canvas.controls.ruler.draggedEntity || 
-                token.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                token.document.getFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME)) {
                 return;
             }
             
@@ -215,13 +216,13 @@ Hooks.once('init', function () {
         }
 
         // Wrap around Foundry so drag rulers can place and remove waypoints correctly
-        libWrapper.register(MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
+        libWrapper.register(TSTG_MODULE_ID, 'Token.prototype._onDragLeftCancel', function (wrapped, ...args) {
             checkAndSetSnapOverride(this);
             return wrapped(...args);
         }, 'WRAPPER');
 
         // Override Foundry so drag rulers will measure correctly after removing a waypoint
-        libWrapper.register(MODULE_ID, 'Ruler.prototype._removeWaypoint', function (...args) {
+        libWrapper.register(TSTG_MODULE_ID, 'CONFIG.Canvas.rulerClass.prototype._removeWaypoint', function (...args) {
             this.waypoints.pop();
             this.labels.removeChild(this.labels.children.pop());
             this.measure(args[0], args[1]);
@@ -244,13 +245,13 @@ Hooks.once('init', function () {
         }
 
         // Wrap around Foundry so ruler measurements will change if grid snapping is disabled
-        libWrapper.register(MODULE_ID, 'Ruler.prototype.measure', function (wrapped, ...args) {
+        libWrapper.register(TSTG_MODULE_ID, 'CONFIG.Canvas.rulerClass.prototype.measure', function (wrapped, ...args) {
 
             // Default behavior if this is a gridless map
             // Also check if this isn't a drag ruler or if grid snapping is enabled
             if(canvas.grid.type == CONST.GRID_TYPES.GRIDLESS ||
                 !this.isDragRuler || !this.draggedEntity || !(this.draggedEntity instanceof Token) || 
-                this.draggedEntity.document.getFlag(MODULE_ID, FLAG_NAME)) {
+                this.draggedEntity.document.getFlag(TSTG_MODULE_ID, TSTG_FLAG_NAME)) {
                 return wrapped(...args);
             }
 

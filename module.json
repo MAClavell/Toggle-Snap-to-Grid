@@ -1,7 +1,7 @@
 {
   "title": "Toggle Snap to Grid",
   "description": "Adds a button to the Token UI that toggles grid snapping for that token. Helpful for RP maps!",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "esmodules": [
     "toggle-snap-to-grid.js"
   ],
@@ -15,7 +15,7 @@
   ],
   "manifest": "https://raw.githubusercontent.com/MAClavell/Toggle-Snap-to-Grid/main/module.json",
   "url": "https://github.com/MAClavell/Toggle-Snap-to-Grid/",
-  "download": "https://github.com/MAClavell/Toggle-Snap-to-Grid/releases/download/2.8.0/Toggle-Snap-To-Grid-v2.8.0.zip",
+  "download": "https://github.com/MAClavell/Toggle-Snap-to-Grid/releases/download/2.8.1/Toggle-Snap-To-Grid-v2.8.1.zip",
   "bugs": "https://github.com/MAClavell/Toggle-Snap-to-Grid/issues",
   "readme": "https://raw.githubusercontent.com/MAClavell/Toggle-Snap-to-Grid/main/README.md",
   "id": "toggle-snap-to-grid",
@@ -27,6 +27,15 @@
   ],
   "compatibility": {
     "minimum": "10",
-    "verified": "10"
-  }
+    "verified": "11"
+  },
+  "relationships": {
+		"requires": [
+			{
+				"id": "lib-wrapper",
+				"type": "module",
+				"manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json"
+			}
+		]
+	}
 }
