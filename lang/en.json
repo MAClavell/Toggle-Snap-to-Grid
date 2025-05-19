@@ -1,9 +1,12 @@
 {
-	"TSTG.TooltipText": "Click to toggle grid snapping for this token",
+	"TSTG.TooltipText": "Click to toggle grid snapping for selected tokens",
 
-	"TSTG.DragRulerMeasurementSettingName": "Drag Ruler Measurement/Highlight",
-	"TSTG.DragRulerMeasurementSettingHint": "Configure how Drag Ruler looks when dragging an unsnapped token.",
-	"TSTG.DragRulerMeasurementSettingIgnoreGridNoHighlight": "Euclidean Measurement and No Grid Highlighting",
-	"TSTG.DragRulerMeasurementSettingGridNoHighlight": "Gridded Measurement and No Grid Highlighting",
-	"TSTG.DragRulerMeasurementSettingGridHighlight": "Gridded Measurement and Grid Highlighting"
+	"TSTG.DragMeasurementSettingName": "Drag Measurement/Highlight",
+	"TSTG.DragMeasurementSettingHint": "Configure how Drag Measurement looks when dragging an unsnapped token.",
+	"TSTG.DragMeasurementSettingIgnoreGridNoHighlight": "Euclidean Measurement and No Grid Highlighting",
+	"TSTG.DragMeasurementSettingGridNoHighlight": "Gridded Measurement and No Grid Highlighting",
+	"TSTG.DragMeasurementSettingGridHighlight": "Gridded Measurement and Grid Highlighting",
+
+	"TSTG.KeybindingToggleName": "Toggle Grid Snapping",
+	"TSTG.KeybindingToggleHint": "Toggle grid snapping for the selected token(s)"
 }
